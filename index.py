@@ -1,7 +1,7 @@
 import re
 import string
 from collections import defaultdict
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 
 skip_words = {"и", "а", "в", "я", "на", "не", "что",
               "с", "она", "они", "оно", "он", "как",
@@ -14,14 +14,14 @@ class Entry:
     pages = Dict[int, int]
     count: int
 
-    def __init__(self, count=0, pages=None):
+    def __init__(self, count: int = 0, pages: List[Tuple[int, int]] = None):
         self.pages = defaultdict(lambda: 0)
         self.count = count
         if pages is not None:
             for p, c in pages:
                 self.pages[p] = c
 
-    def add_page(self, page: int):
+    def add_page(self, page: int) -> None:
         self.pages[page] = self.pages[page] + 1
         self.count = self.count + 1
 
@@ -42,11 +42,11 @@ class Index:
         self.entries = defaultdict(lambda: Entry())
         self.number_of_lines_per_page = 45
 
-    def add_word(self, word: str, page: int):
+    def add_word(self, word: str, page: int) -> None:
         entry = self.entries[word]
         entry.add_page(page)
 
-    def count_words(self, filename: str):
+    def count_words(self, filename: str) -> None:
         with open(filename, 'rt') as fp:
             for cnt, line in enumerate(fp):
                 words = re.sub('[' + string.punctuation + string.ascii_letters + 'à-ö0-9]', '', line.lower()).split()
@@ -55,7 +55,7 @@ class Index:
                 for word in words:
                     self.add_word(word, page)
 
-    def save(self, filename: str):
+    def save(self, filename: str) -> None:
         with open(filename, 'w') as fp:
             for entry in sorted(self.entries.items()):
                 k, v = entry
@@ -68,18 +68,17 @@ class Index:
                     fp.write(", ")
                 fp.write("\n")
 
-    @staticmethod
-    def read_pages(t: Tuple[str, str]):
-        if t[1]:
-            return int(t[0]), int(t[1])
-        else:
-            return int(t[0]), 1
+    def load(self, filename: str) -> None:
+        def read_pages(t: Tuple[str, str]):
+            if t[1]:
+                return int(t[0]), int(t[1])
+            else:
+                return int(t[0]), 1
 
-    def load(self, filename: str):
         with open(filename, 'rt') as fp:
             for line in fp:
                 word, count, pstr = line.split(":")
-                pages = list(map(self.read_pages, re.findall(r'(\d+)(?:\((\d+)\))?, ', pstr)))
+                pages = list(map(read_pages, re.findall(r'(\d+)(?:\((\d+)\))?, ', pstr)))
                 entry = Entry(int(count), pages)
                 self.entries[word] = entry  # pages
 
