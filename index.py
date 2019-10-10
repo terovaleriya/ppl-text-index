@@ -1,16 +1,24 @@
+import itertools
 import re
 import string
 from collections import defaultdict
-from typing import Set, Dict
+from itertools import islice
+from typing import Dict, List, Tuple
+
+s = {"и", "а", "в", "я", "на", "не", "что", "с", "она", "они", "оно", "он", "как", "мне", "меня",
+     "но", "его", "ее", "это", "к", "так", "за", "по", "же"}
 
 
 class Entry:
     pages = Dict[int, int]
     count: int
 
-    def __init__(self):
+    def __init__(self, count=0, pages=None):
         self.pages = defaultdict(lambda: 0)
-        self.count = 0
+        self.count = count
+        if pages is not None:
+            for p, c in pages.items():
+                self.pages[p] = c
 
     def add_page(self, page: int):
         self.pages[page] = self.pages[page] + 1
@@ -34,12 +42,10 @@ class Index:
         with open(filename, 'rt') as fp:
             for cnt, line in enumerate(fp):
                 words = re.sub('[' + string.punctuation + string.ascii_letters + 'à-ö0-9]', '', line.lower()).split()
-                words = set(words) - {"и", "а", "в", "я", "на", "не", "что", "с", "она", "они", "оно", "он", "как",
-                                      "мне", "меня",
-                                      "но", "его", "ее", "это", "к", "так", "за", "по", "же"}
+                words = set(words) - s
                 page = cnt // 45 + 1
                 for word in words:
-                    index.add_word(word, page)
+                    self.add_word(word, page)
 
     def save(self, filename: str):
         with open(filename, 'w') as fp:
@@ -54,8 +60,12 @@ class Index:
                     fp.write(", ")
                 fp.write("\n")
 
+    def load(self, filename: str):
+        with open(filename, 'rt') as fp:
+            for line in fp:
+                word, count, pages = line.split(":")
+                self.entries[word] = Entry(int(count))  # pages
 
-if __name__ == '__main__':
-    index = Index()
-    index.count_words('Childhood.txt')
-    index.save("index.txt")
+    def most_freq_used(self, count: object) -> Tuple[str, Entry]:
+        swords: Tuple[str, Entry] = sorted(self.entries.items(), key=lambda kv: -kv[1].count)
+        return swords[0: count]
