@@ -15,11 +15,9 @@ class Entry:
     count: int
 
     def __init__(self, count: int = 0, pages: List[Tuple[int, int]] = None):
-        self.pages = defaultdict(lambda: 0)
+        self.pages = defaultdict(int)
         self.count = count
-        if pages is not None:
-            for p, c in pages:
-                self.pages[p] = c
+        self.pages = dict(pages)
 
     def add_page(self, page: int) -> None:
         self.pages[page] = self.pages[page] + 1
@@ -40,7 +38,7 @@ class Index:
     entries: Dict[str, Entry]
 
     def __init__(self):
-        self.entries = defaultdict(lambda: Entry())
+        self.entries = defaultdict(Entry)
         self.number_of_lines_per_page = 45
 
     def add_word(self, word: str, page: int) -> None:
