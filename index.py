@@ -11,7 +11,7 @@ skip_words = {"и", "а", "в", "я", "на", "не", "что",
 
 
 class Entry:
-    pages = Dict[int, int]
+    pages: Dict[int, int]
     count: int
 
     def __init__(self, count: int = 0, pages: List[Tuple[int, int]] = None):
@@ -28,10 +28,11 @@ class Entry:
     def __repr__(self) -> str:
         def format_pages(x: Tuple[int, int]) -> str:
             page, count = x
-            return str(page) + ('(' + str(count) + ')' if count > 1 else '')
+            scount = f"({count})" if count > 1 else ""
+            return f"{page}{scount}"
 
-        pages = ', '.join(map(format_pages, self.pages.items()))
-        return str(self.count) + ', ' + pages
+        pages = ", ".join(map(format_pages, self.pages.items()))
+        return f"{self.count}, {pages}"
 
 
 class Index:
@@ -47,24 +48,24 @@ class Index:
         entry.add_page(page)
 
     def count_words(self, filename: str) -> None:
-        with open(filename, 'rt') as fp:
+        with open(filename, "rt") as fp:
             for cnt, line in enumerate(fp):
-                words = re.sub('[' + string.punctuation + string.ascii_letters + 'à-ö0-9]', '', line.lower()).split()
+                words = re.sub('[' + string.punctuation + string.ascii_letters + "à-ö0-9]", "", line.lower()).split()
                 words = set(words) - skip_words
                 page = cnt // self.number_of_lines_per_page + 1
                 for word in words:
                     self.add_word(word, page)
 
     def save(self, filename: str) -> None:
-        with open(filename, 'w') as fp:
+        with open(filename, "w") as fp:
             for entry in sorted(self.entries.items()):
                 k, v = entry
-                fp.write(k + ":" + " ")
-                fp.write(str(v.count) + ":" + " ")
+                fp.write(f"{k}: ")
+                fp.write(f"{str(v.count)}: ")
                 for page, count in sorted(v.pages.items()):
                     fp.write(str(page))
                     if count > 1:
-                        fp.write("(" + str(count) + ")")
+                        fp.write(f"({str(count)})")
                     fp.write(", ")
                 fp.write("\n")
 
@@ -75,10 +76,10 @@ class Index:
             else:
                 return int(t[0]), 1
 
-        with open(filename, 'rt') as fp:
+        with open(filename, "rt") as fp:
             for line in fp:
                 word, count, pstr = line.split(":")
-                pages = list(map(read_pages, re.findall(r'(\d+)(?:\((\d+)\))?, ', pstr)))
+                pages = list(map(read_pages, re.findall(r"(\d+)(?:\((\d+)\))?, ", pstr)))
                 entry = Entry(int(count), pages)
                 self.entries[word] = entry  # pages
 
