@@ -15,9 +15,11 @@ class Entry:
     count: int
 
     def __init__(self, count: int = 0, pages: List[Tuple[int, int]] = None):
-        self.pages = defaultdict(int)
         self.count = count
-        self.pages = dict(pages)
+        if pages is not None:
+            self.pages = defaultdict(int, pages)
+        else:
+            self.pages = defaultdict(int)
 
     def add_page(self, page: int) -> None:
         self.pages[page] = self.pages[page] + 1
@@ -32,6 +34,9 @@ class Entry:
         pages = ", ".join(map(format_pages, self.pages.items()))
         return f"{self.count}, {pages}"
 
+    def __eq__(self, other):
+        return self.count == other.count and self.pages == other.pages
+
 
 class Index:
     number_of_lines_per_page: int
@@ -45,11 +50,11 @@ class Index:
         entry = self.entries[word]
         entry.add_page(page)
 
-    def count_words(self, filename: str) -> None:
+    def build(self, filename: str) -> None:
         with open(filename, "rt") as fp:
             for cnt, line in enumerate(fp):
                 words = re.sub('[' + string.punctuation + string.ascii_letters + "à-ö0-9]", "", line.lower()).split()
-                words = set(words) - skip_words
+                words = [x for x in words if x not in skip_words]
                 page = cnt // self.number_of_lines_per_page + 1
                 for word in words:
                     self.add_word(word, page)
@@ -60,11 +65,13 @@ class Index:
                 k, v = entry
                 fp.write(f"{k}: ")
                 fp.write(f"{str(v.count)}: ")
-                for page, count in sorted(v.pages.items()):
+                for idx, (page, count) in enumerate(sorted(v.pages.items())):
                     fp.write(str(page))
                     if count > 1:
                         fp.write(f"({str(count)})")
-                    fp.write(", ")
+                    fp.write(",")
+                    if idx < len(v.pages) - 1:
+                        fp.write(" ")
                 fp.write("\n")
 
     def load(self, filename: str) -> None:
@@ -77,10 +84,13 @@ class Index:
         with open(filename, "rt") as fp:
             for line in fp:
                 word, count, pstr = line.split(":")
-                pages = list(map(read_pages, re.findall(r"(\d+)(?:\((\d+)\))?, ", pstr)))
+                pages = list(map(read_pages, re.findall(r"(\d+)(?:\((\d+)\))?, ?", pstr)))
                 entry = Entry(int(count), pages)
                 self.entries[word] = entry  # pages
 
     def most_freq_used(self, count: int) -> Tuple[str, Entry]:
         swords: Tuple[str, Entry] = sorted(self.entries.items(), key=lambda kv: -kv[1].count)
         return swords[:count]
+
+    def __eq__(self, other):
+        return self.entries == other.entries
